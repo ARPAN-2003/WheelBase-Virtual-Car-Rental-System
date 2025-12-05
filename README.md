@@ -2,4 +2,10 @@
 This is our B.Tech 5th Semester Project. Hope, we do well.
 In the system, I have added some basic functionalities.
 If you prefer some more ideas on this, it will be very helpful to us.
-Thank You in advance 😊💖...
+Thank You in advance 😊💖...                                       
+                                                                           
+To run this, you have to start 'Apache' and 'MySql' server...                      
+                                                                           
+If your localhost is running at port:3306, then you have to configure one file [WheelBase/config.php] information (given below)          
+                                                                          
+Line-03:  define('DB_HOST', 'localhost:3308');    ---->   	define('DB_HOST', 'localhost:3306');
