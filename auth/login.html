@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Login – WheelBase</title>
+  <link rel="stylesheet" href="/WheelBase/assets/css/style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body class="auth-wrapper">
+  <header>
+    <div class="container navbar">
+      <div class="logo">Wheel<span>Base</span></div>
+      <nav class="nav-links">
+        <a href="/WheelBase/index.php">Home</a>
+        <a href="register.html">Register</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h2>Login</h2>
+      <p>Choose your role and enter your username &amp; password.</p>
+
+      <!-- action posts to login.php (server-side) -->
+      <form method="post" action="/WheelBase/login.php" id="loginForm">
+        <div class="form-group">
+          <label for="userType">Login as</label>
+          <select id="userType" name="user_type" required>
+            <option value="">-- Select --</option>
+            <option value="customer">Customer</option>
+            <option value="retailer">Retailer</option>
+            <option value="admin">Admin</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required />
+        </div>
+
+        <!-- hidden next param: login.php will use this to redirect after success -->
+        <input type="hidden" name="next" id="loginNext" value="">
+
+        <button class="btn btn-primary" type="submit">Login</button>
+
+        <p class="small-text" style="margin-top:10px;">
+          New user? <a href="register.html">Create an account</a>.
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    // Read role & next from URL query (e.g. ?role=customer&next=/WheelBase/customer/browse-cars.php?...)
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const role = params.get('role');
+      const next = params.get('next');
+
+      if (role) {
+        const sel = document.getElementById('userType');
+        if (sel) sel.value = role;
+      }
+      if (next) {
+        const nextInput = document.getElementById('loginNext');
+        if (nextInput) nextInput.value = next;
+      }
+    })();
+  </script>
+
+</body>
+</html>

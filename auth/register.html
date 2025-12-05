@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Register – WheelBase</title>
+  <link rel="stylesheet" href="/WheelBase/assets/css/style.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+</head>
+<body class="auth-wrapper">
+  <header>
+    <div class="container navbar">
+      <div class="logo">Wheel<span>Base</span></div>
+      <nav class="nav-links">
+        <a href="/WheelBase/index.php">Home</a>
+        <a href="login.html">Login</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="auth-main">
+    <div class="auth-card">
+      <h2>Create your account</h2>
+      <p>Select Customer or Retailer and fill the details below.</p>
+
+      <!-- action points to server register.php -->
+      <form method="post" action="/WheelBase/register.php" id="registerForm">
+        <div class="form-group">
+          <label for="userType">Register as</label>
+          <select id="userType" name="user_type" required>
+            <option value="">-- Select --</option>
+            <option value="customer">Customer</option>
+            <option value="retailer">Retailer</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="name">Full Name</label>
+          <input id="name" name="name" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label for="aadhaar">Aadhaar Number</label>
+          <input id="aadhaar" name="aadhaar" type="text" maxlength="12" minlength="12" required />
+          <p class="small-text">Must be 12 digits.</p>
+        </div>
+
+        <div class="form-group">
+          <label for="username">Username</label>
+          <input id="username" name="username" type="text" required />
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email address</label>
+          <input id="email" name="email" type="email" required />
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input id="password" name="password" type="password" required />
+        </div>
+
+        <div class="form-group">
+          <label for="phone">Phone Number</label>
+          <input id="phone" name="phone" type="text" required />
+        </div>
+
+        <button class="btn btn-primary" type="submit">Register</button>
+
+        <p class="small-text" style="margin-top:10px;">
+          Already have an account? <a href="login.html">Login here</a>.
+        </p>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    // Preselect role if URL contains role param, e.g. register.html?role=retailer
+    (function () {
+      const params = new URLSearchParams(location.search);
+      const role = params.get('role');
+      if (role) {
+        const sel = document.getElementById('userType');
+        if (sel) sel.value = role;
+      }
+    })();
+  </script>
+
+</body>
+</html>

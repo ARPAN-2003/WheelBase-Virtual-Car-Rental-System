@@ -1,0 +1,438 @@
+/* ==============
+   Global styles
+   ============== */
+
+:root {
+  --base-font: 17px; /* change this to 15px / 17px if you want smaller/larger */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* use base font size across the site */
+html { 
+  font-size: var(--base-font); 
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: #f5f6fa;
+  color: #222;
+  line-height: 1.45;  /* newly added style */
+}
+
+html, body {
+  height: 100%;
+}
+
+/* Simple container */
+.container {
+  width: 90%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+main.container {
+  flex: 1 0 auto;
+}
+
+footer.site-footer {
+  background: #0f1724;
+  color: #dbeafe;
+  padding: 28px 0;
+  margin-top: 20px;
+  flex-shrink: 0;   /* don't shrink */
+}
+
+/* ==============
+   Header / Navbar
+   ============== */
+
+header {
+  background: #111827;
+  color: #fff;
+  padding: 10px 0;
+}
+
+.navbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  font-weight: 700;
+  font-size: 1.4rem;
+}
+
+.logo span {
+  color: #22c55e;
+}
+
+.nav-links a {
+  color: #e5e7eb;
+  text-decoration: none;
+  margin-left: 15px;
+  font-size: 0.95rem;
+}
+
+/* Active nav/link color */
+.nav-links a.active,
+.nav-links a:active {
+  color: #22c55e;
+  font-weight: 600;
+}
+
+.nav-links a:hover {
+  color: #22c55e;
+}
+
+/* ==============
+   Buttons
+   ============== */
+
+.btn {
+  display: inline-block;
+  padding: 8px 18px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+
+.btn-primary {
+  background: #22c55e;
+  color: #111827;
+}
+
+.btn-primary:hover {
+  background: #16a34a;
+}
+
+.btn-outline {
+  border: 1.6px solid #22c55e;
+  color: #22c55e;
+}
+
+.btn-outline:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(100, 246, 180, 0.4);
+  border-color: #22c55e;
+  color: #22c55e;
+}
+
+/* ==============
+   Landing / Hero
+   ============== */
+
+.hero {
+  padding: 40px 0 60px;
+  display: grid;
+  grid-template-columns: 1.2fr 1fr;
+  gap: 40px;
+  align-items: center;
+}
+
+.hero-title {
+  font-size: 2.2rem;
+  margin-bottom: 15px;
+}
+
+.hero-subtitle {
+  color: #4b5563;
+  margin-bottom: 20px;
+}
+
+.hero-actions {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 25px;
+}
+
+.hero-note {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.hero-card {
+  background: #fff;
+  padding: 22px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+/* ==============
+   Simple grid cards
+   ============== */
+
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 20px;
+  margin: 30px 0 50px;
+}
+
+.card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+}
+
+.card img {
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+  border-radius: 6px;
+  margin-bottom: 10px;
+}
+
+.card-title {
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.card-text {
+  font-size: 0.9rem;
+  color: #4b5563;
+}
+
+/* ==============
+   Auth forms
+   ============== */
+
+.auth-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.auth-main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.auth-card {
+  background: #fff;
+  padding: 25px 30px;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 420px;
+}
+
+.auth-card h2 {
+  margin-bottom: 10px;
+}
+
+.auth-card p {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin-bottom: 18px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+label {
+  display: block;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+input, select, textarea {
+  width: 100%;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: 1px solid #d1d5db;
+  font-size: 0.9rem;
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: #22c55e;
+}
+
+.small-text {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* ==============
+   Dashboard layout
+   ============== */
+
+.dashboard-main {
+  padding: 25px 0 40px;
+}
+
+.dashboard-header {
+  margin-bottom: 20px;
+}
+
+.dashboard-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  background: #e5f9ed;
+  color: #166534;
+}
+
+/* simple horizontal tabs (customer/retailer cards) */
+.tab-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+/* Table */
+.table-wrapper {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+th, td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 8px 6px;
+  text-align: left;
+}
+
+th {
+  background: #f9fafb;
+  font-weight: 600;
+}
+
+/* ==============
+   Admin dashboard with sidebar
+   ============== */
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 220px 1fr;
+  min-height: calc(100vh - 56px);
+}
+
+.admin-sidebar {
+  background: #111827;
+  color: #e5e7eb;
+  padding: 20px 15px;
+}
+
+.admin-sidebar h2 {
+  font-size: 1rem;
+  margin-bottom: 15px;
+}
+
+.admin-menu button {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #e5e7eb;
+  font-size: 0.9rem;
+  cursor: pointer;
+  margin-bottom: 5px;
+}
+
+.admin-menu button.active,
+/* Ensure admin/retailer sidebar uses the same highlight color */
+.admin-menu button.active {
+  background: #1f2937;
+  color: #22c55e;
+  border-left: 3px solid #22c55e;
+}
+
+.admin-menu button:hover {
+  background: #1f2937;
+}
+
+.admin-content {
+  padding: 20px 25px;
+}
+
+/* Admin small cards */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.stat-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* Sections hidden via JS */
+.section {
+  display: none;
+}
+
+.section.active {
+  display: block;
+}
+
+/* ==============
+   Responsive bits
+   ============== */
+
+@media (max-width: 768px) {
+  .hero {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-sidebar {
+    display: flex;
+    overflow-x: auto;
+  }
+
+  .admin-menu button {
+    white-space: nowrap;
+    margin-right: 8px;
+  }
+}
