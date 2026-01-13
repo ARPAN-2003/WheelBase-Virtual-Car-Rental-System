@@ -1,188 +1,280 @@
 <?php
-// admin/dashboard.php
 session_start();
 require_once __DIR__ . '/../config.php';
 require_once __DIR__ . '/../db.php';
 
-// Require admin login
-if (!isset($_SESSION['role']) || $_SESSION['role'] !== 'admin') {
-    header('Location: ' . rtrim(BASE_URL, '/') . '/auth/login.html?role=admin');
+if (($_SESSION['role'] ?? '') !== 'admin') {
+    header('Location: ' . BASE_URL . 'auth/login.html?role=admin');
     exit;
 }
 
-$mysqli = get_db();
+$db = get_db();
 
-// Fetch all bookings with user & car info
-$sql = "
-  SELECT 
-    b.id,
-    b.city,
-    b.location,
-    b.pickup_datetime,
-    b.drop_datetime,
-    b.rate_per_hour,
-    b.total_amount,
-    b.status,
-    b.created_at,
-    u.username AS customer_username,
-    c.car_name,
-    c.reg_no AS car_reg_no
-  FROM bookings b
-  JOIN users u ON b.user_id = u.id
-  JOIN cars c ON b.car_reg_no = c.reg_no
-  ORDER BY b.created_at DESC
-";
-$result = $mysqli->query($sql);
-if (!$result) {
-    die('DB error: ' . $mysqli->error);
+/* ================= BOOKINGS ================= */
+$bookings = $db->query("
+    SELECT 
+        b.id, b.city, b.location,
+        b.pickup_datetime, b.drop_datetime,
+        b.total_amount, b.status, b.created_at,
+        u.username,
+        c.car_name, c.reg_no
+    FROM bookings b
+    JOIN users u ON b.user_id = u.id
+    JOIN cars c ON b.car_reg_no = c.reg_no
+    ORDER BY b.created_at DESC
+");
+
+/* ================= CARS ================= */
+$cars = $db->query("
+    SELECT reg_no, car_name, brand_name, price_per_hour, owner_username, status
+    FROM cars
+    ORDER BY created_at DESC
+");
+
+/* ================= USERS ================= */
+$users = $db->query("
+    SELECT name, username, email, role, created_at
+    FROM users
+    ORDER BY created_at DESC
+");
+
+/* ================= REVENUE SUMMARY ================= */
+$summary = ['today'=>0,'week'=>0,'month'=>0,'year'=>0,'total'=>0];
+
+$revRows = $db->query("
+    SELECT total_amount, created_at
+    FROM bookings
+    WHERE status='Accepted'
+");
+
+$today = date('Y-m-d');
+$month = date('Y-m');
+$year  = date('Y');
+
+while ($r = $revRows->fetch_assoc()) {
+    $amt = (float)$r['total_amount'];
+    $d = date('Y-m-d', strtotime($r['created_at']));
+    $m = date('Y-m', strtotime($r['created_at']));
+    $y = date('Y', strtotime($r['created_at']));
+
+    $summary['total'] += $amt;
+    if ($d === $today) $summary['today'] += $amt;
+    if (strtotime($d) >= strtotime('-7 days')) $summary['week'] += $amt;
+    if ($m === $month) $summary['month'] += $amt;
+    if ($y === $year)  $summary['year'] += $amt;
 }
 
-function format_booking_code($id, $createdAt) {
-    // e.g. WB-2025-001
-    $year = date('Y', strtotime($createdAt));
-    return 'WB-' . $year . '-' . str_pad($id, 3, '0', STR_PAD_LEFT);
+/* ================= PER-CAR REVENUE ================= */
+$perCar = $db->query("
+    SELECT 
+        c.car_name, c.reg_no,
+        COUNT(b.id) AS bookings,
+        IFNULL(SUM(b.total_amount),0) AS revenue
+    FROM cars c
+    LEFT JOIN bookings b 
+      ON c.reg_no = b.car_reg_no AND b.status='Accepted'
+    GROUP BY c.reg_no
+    ORDER BY revenue DESC
+");
+
+/* ================= PER-RETAILER REVENUE ================= */
+$perRetailer = $db->query("
+    SELECT 
+        c.owner_username,
+        COUNT(DISTINCT c.reg_no) AS cars_owned,
+        IFNULL(SUM(b.total_amount),0) AS revenue
+    FROM cars c
+    LEFT JOIN bookings b 
+      ON c.reg_no = b.car_reg_no AND b.status='Accepted'
+    GROUP BY c.owner_username
+    ORDER BY revenue DESC
+");
+
+function bookingCode($id,$dt){
+    return 'WB-' . date('Y',strtotime($dt)) . '-' . str_pad($id,3,'0',STR_PAD_LEFT);
 }
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <title>Admin Dashboard – WheelBase</title>
-  <link rel="stylesheet" href="/WheelBase/assets/css/style.css" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="UTF-8">
+<title>Admin Dashboard – WheelBase</title>
+<link rel="stylesheet" href="/WheelBase/assets/css/style.css">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 </head>
 <body>
-  <header>
-    <div class="container navbar">
-      <div class="logo"><a href="/WheelBase/index.php">Wheel<span>Base</span></a></div>
-      <nav class="nav-links">
-        <a href="/WheelBase/index.php">Home</a>
-        <a href="/WheelBase/logout.php">Logout</a>
-      </nav>
-    </div>
-  </header>
 
-  <main class="admin-layout">
-    <aside class="admin-sidebar">
-      <h2>Admin Panel</h2>
-      <p class="small-text">Signed in as <strong>admin</strong></p>
-      <div class="admin-menu">
-        <button class="active" onclick="showAdminSection('approve', this)">Approve Booking</button>
-        <button onclick="showAdminSection('cars', this)" disabled>Add / Remove Car</button>
-        <button onclick="showAdminSection('users', this)" disabled>Check System Users</button>
-        <button onclick="showAdminSection('revenue', this)" disabled>Check Revenue</button>
-      </div>
-    </aside>
+<header>
+  <div class="container navbar">
+    <div class="logo"><a href="/WheelBase/index.php">Wheel<span>Base</span></a></div>
+    <nav class="nav-links">
+      <a href="/WheelBase/index.php">Home</a>
+      <a href="/WheelBase/logout.php">Logout</a>
+    </nav>
+  </div>
+</header>
 
-    <section class="admin-content">
-      <!-- Approve Booking section -->
-      <div id="approve" class="section active">
-        <h1>Approve Booking</h1>
-        <p class="small-text">
-          Admin can change booking status from Pending to Accepted or Cancelled. Once changed it cannot be modified again.
-        </p>
+<main class="admin-layout">
 
-        <?php if (!empty($_SESSION['admin_msg'])): ?>
-          <div class="alert">
-            <?php
-              echo htmlspecialchars($_SESSION['admin_msg']);
-              unset($_SESSION['admin_msg']);
-            ?>
-          </div>
-        <?php endif; ?>
+<!-- ================= SIDEBAR ================= -->
+<aside class="admin-sidebar">
+  <h2>Admin Panel</h2>
+  <div class="admin-menu">
+    <button class="active" onclick="showSection('approve',this)">Approve Bookings</button>
+    <button onclick="showSection('cars',this)">Manage Cars</button>
+    <button onclick="showSection('users',this)">Maintain System Users</button>
+    <button onclick="showSection('revenue',this)">Check Revenue</button>
+  </div>
+</aside>
 
-        <div class="card">
-          <table class="table">
-            <thead>
-              <tr>
-                <th>Booking ID</th>
-                <th>Customer</th>
-                <th>Car</th>
-                <th>Trip</th>
-                <th>Pickup</th>
-                <th>Drop-off</th>
-                <th>Rate/hr (₹)</th>
-                <th>Total (₹)</th>
-                <th>Current Status</th>
-                <th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-            <?php if ($result->num_rows === 0): ?>
-              <tr>
-                <td colspan="10" style="text-align:center;">No bookings yet.</td>
-              </tr>
-            <?php else: ?>
-              <?php while ($row = $result->fetch_assoc()): ?>
-                <?php
-                  $bookingCode = format_booking_code($row['id'], $row['created_at']);
-                  $status      = $row['status']; // 'Pending', 'Accepted', 'Cancelled'
-                  $isPending   = ($status === 'Pending');
+<!-- ================= CONTENT ================= -->
+<section class="admin-content">
 
-                  $pickupDate = date('d-m-Y H:i', strtotime($row['pickup_datetime']));
-                  $dropDate   = date('d-m-Y H:i', strtotime($row['drop_datetime']));
-                  $tripText   = $row['city'] . ' — ' . $row['location'];
-                ?>
-                <tr>
-                  <td><?php echo htmlspecialchars($bookingCode); ?></td>
-                  <td><?php echo htmlspecialchars($row['customer_username']); ?></td>
-                  <td>
-                    <?php echo htmlspecialchars($row['car_name']); ?><br/>
-                    <span class="small-text">(<?php echo htmlspecialchars($row['car_reg_no']); ?>)</span>
-                  </td>
-                  <td><?php echo htmlspecialchars($tripText); ?></td>
-                  <td><?php echo htmlspecialchars($pickupDate); ?></td>
-                  <td><?php echo htmlspecialchars($dropDate); ?></td>
-                  <td><?php echo number_format((float)$row['rate_per_hour'], 2); ?></td>
-                  <td><?php echo number_format((float)$row['total_amount'], 2); ?></td>
-                  <td><?php echo htmlspecialchars($status); ?></td>
-                  <td>
-                    <form method="post" action="/WheelBase/admin_approve.php">
-                      <input type="hidden" name="booking_id" value="<?php echo (int)$row['id']; ?>">
-                      <button type="submit" name="action" value="accept"
-                        class="btn btn-primary"
-                        <?php echo $isPending ? '' : 'disabled'; ?>>Accept</button>
-                      <button type="submit" name="action" value="cancel"
-                        class="btn btn-danger"
-                        <?php echo $isPending ? '' : 'disabled'; ?>>Cancel</button>
-                    </form>
-                  </td>
-                </tr>
-              <?php endwhile; ?>
-            <?php endif; ?>
-            </tbody>
-          </table>
-        </div>
-      </div>
+<!-- ===== APPROVE BOOKINGS ===== -->
+<div id="approve" class="section active">
+<h2>Approve Bookings</h2>
 
-      <!-- Placeholder sections for future -->
-      <div id="cars" class="section" style="display:none;">
-        <h2>Add / Remove Car</h2>
-        <p class="small-text">Static for now.</p>
-      </div>
+<table class="table">
+<thead>
+<tr>
+<th>ID</th><th>User</th><th>Car</th><th>Trip</th>
+<th>Pickup</th><th>Drop</th><th>Total</th><th>Status</th><th>Action</th>
+</tr>
+</thead>
+<tbody>
 
-      <div id="users" class="section" style="display:none;">
-        <h2>Check System Users</h2>
-        <p class="small-text">Static for now.</p>
-      </div>
+<?php if ($bookings->num_rows === 0): ?>
+<tr><td colspan="9" style="text-align:center;">No bookings yet</td></tr>
+<?php endif; ?>
 
-      <div id="revenue" class="section" style="display:none;">
-        <h2>Check Revenue</h2>
-        <p class="small-text">Static for now.</p>
-      </div>
-    </section>
-  </main>
+<?php while ($b = $bookings->fetch_assoc()): ?>
+<tr>
+<td><?= bookingCode($b['id'],$b['created_at']) ?></td>
+<td><?= htmlspecialchars($b['username']) ?></td>
+<td><?= htmlspecialchars($b['car_name']) ?><br><small><?= $b['reg_no'] ?></small></td>
+<td><?= htmlspecialchars($b['city'].' — '.$b['location']) ?></td>
+<td><?= date('d-m-Y H:i', strtotime($b['pickup_datetime'])) ?></td>
+<td><?= date('d-m-Y H:i', strtotime($b['drop_datetime'])) ?></td>
+<td>₹<?= number_format($b['total_amount'],2) ?></td>
+<td><?= htmlspecialchars($b['status']) ?></td>
+<td>
+<?php if ($b['status']==='Pending'): ?>
+<form method="post" action="/WheelBase/admin_approve.php">
+<input type="hidden" name="booking_id" value="<?= $b['id'] ?>">
+<button name="action" value="accept" class="btn btn-primary">Accept</button>
+<button name="action" value="cancel" class="btn btn-danger">Cancel</button>
+</form>
+<?php else: ?>
+<button class="btn btn-outline" disabled><?= $b['status'] ?></button>
+<?php endif; ?>
+</td>
+</tr>
+<?php endwhile; ?>
 
-  <script>
-    function showAdminSection(id, btn) {
-      document.querySelectorAll('.admin-content .section').forEach(s => {
-        s.style.display = 'none';
-      });
-      var el = document.getElementById(id);
-      if (el) el.style.display = 'block';
-      document.querySelectorAll('.admin-menu button').forEach(b => b.classList.remove('active'));
-      if (btn) btn.classList.add('active');
-    }
-  </script>
+</tbody>
+</table>
+</div>
+
+<!-- ===== CARS ===== -->
+<div id="cars" class="section">
+<h2>Cars in System</h2>
+
+<table class="table">
+<tr>
+<th>Reg No</th><th>Name</th><th>Brand</th>
+<th>Rate/hr</th><th>Owner</th><th>Status</th>
+</tr>
+
+<?php while ($c = $cars->fetch_assoc()): ?>
+<tr>
+<td><?= htmlspecialchars($c['reg_no']) ?></td>
+<td><?= htmlspecialchars($c['car_name']) ?></td>
+<td><?= htmlspecialchars($c['brand_name']) ?></td>
+<td>₹<?= number_format($c['price_per_hour'],2) ?></td>
+<td><?= htmlspecialchars($c['owner_username']) ?></td>
+<td>
+<form method="post" action="/WheelBase/admin/admin_toggle_car.php">
+<input type="hidden" name="reg_no" value="<?= $c['reg_no'] ?>">
+<button class="btn <?= $c['status']==='available'?'btn-primary':'btn-danger' ?>">
+<?= ucfirst($c['status']) ?>
+</button>
+</form>
+</td>
+</tr>
+<?php endwhile; ?>
+</table>
+
+</div>
+
+<!-- ===== USERS ===== -->
+<div id="users" class="section">
+<h2>System Users</h2>
+
+<table class="table">
+<tr><th>Name</th><th>Username</th><th>Email</th><th>Role</th><th>Joined</th></tr>
+<?php while ($u = $users->fetch_assoc()): ?>
+<tr>
+<td><?= htmlspecialchars($u['name']) ?></td>
+<td><?= htmlspecialchars($u['username']) ?></td>
+<td><?= htmlspecialchars($u['email']) ?></td>
+<td><?= ucfirst($u['role']) ?></td>
+<td><?= date('d-m-Y', strtotime($u['created_at'])) ?></td>
+</tr>
+<?php endwhile; ?>
+</table>
+</div>
+
+<!-- ===== REVENUE ===== -->
+<div id="revenue" class="section">
+<h2>Revenue Dashboard</h2>
+
+<div class="card-grid">
+  <div class="card"><h3>Today</h3><p class="big-text">₹<?= number_format($summary['today'],2) ?></p></div>
+  <div class="card"><h3>Last 7 Days</h3><p class="big-text">₹<?= number_format($summary['week'],2) ?></p></div>
+  <div class="card"><h3>This Month</h3><p class="big-text">₹<?= number_format($summary['month'],2) ?></p></div>
+  <div class="card"><h3>This Year</h3><p class="big-text">₹<?= number_format($summary['year'],2) ?></p></div>
+  <div class="card"><h3>Total Revenue</h3><p class="big-text">₹<?= number_format($summary['total'],2) ?></p></div>
+</div>
+
+<h3>Revenue per Car</h3>
+<table class="table">
+<tr><th>Car</th><th>Bookings</th><th>Revenue</th></tr>
+<?php while ($c = $perCar->fetch_assoc()): ?>
+<tr>
+<td><?= htmlspecialchars($c['car_name'].' ('.$c['reg_no'].')') ?></td>
+<td><?= $c['bookings'] ?></td>
+<td>₹<?= number_format($c['revenue'],2) ?></td>
+</tr>
+<?php endwhile; ?>
+</table>
+
+<h3>Revenue per Retailer</h3>
+<table class="table">
+<tr><th>Retailer</th><th>Cars Owned</th><th>Revenue</th></tr>
+<?php while ($r = $perRetailer->fetch_assoc()): ?>
+<tr>
+<td><?= htmlspecialchars($r['owner_username']) ?></td>
+<td><?= $r['cars_owned'] ?></td>
+<td>₹<?= number_format($r['revenue'],2) ?></td>
+</tr>
+<?php endwhile; ?>
+</table>
+
+<br>
+<a href="/WheelBase/admin/revenue_pdf.php" class="btn btn-primary">Export Revenue PDF</a>
+</div>
+
+</section>
+</main>
+
+<script>
+function showSection(id, btn){
+  document.querySelectorAll('.section').forEach(s=>s.style.display='none');
+  document.getElementById(id).style.display='block';
+  document.querySelectorAll('.admin-menu button').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+
 </body>
 </html>

@@ -23,7 +23,7 @@
       <nav class="nav-links" id="mainNav">
         <a href="/WheelBase/index.php">Home</a>
         <a href="/WheelBase/customer/dashboard.php" class="active">Dashboard</a>
-        <a href="/WheelBase/customer/browse-cars.php">Browse Cars</a>
+        <a href="/WheelBase/browse-cars.php">Browse Cars</a>
         <a href="/WheelBase/customer/my-bookings.php">My Bookings</a>
         <a href="/WheelBase/logout.php">Logout</a>
       </nav>
@@ -42,7 +42,7 @@
           <div class="card-title">Start a new trip</div>
           <div class="card-text">Browse available cars and book your next ride.</div>
           <br />
-          <a href="/WheelBase/customer/browse-cars.php" class="btn btn-primary">Browse Cars</a>
+          <a href="/WheelBase/browse-cars.php" class="btn btn-primary">Browse Cars</a>
         </div>
 
         <div class="card">

@@ -1,3 +1,8 @@
+<?php
+// auth/register.html
+  session_start();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +12,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
 <body class="auth-wrapper">
+
   <header>
     <div class="container navbar">
       <div class="logo">Wheel<span>Base</span></div>
@@ -22,8 +28,18 @@
       <h2>Create your account</h2>
       <p>Select Customer or Retailer and fill the details below.</p>
 
+      <!-- 🔴 ERROR POPUP (SESSION BASED) -->
+      <?php if (!empty($_SESSION['register_error'])): ?>
+        <div class="alert error">
+          <?php
+            echo htmlspecialchars($_SESSION['register_error']);
+            unset($_SESSION['register_error']);
+          ?>
+        </div>
+      <?php endif; ?>
+
       <!-- action points to server register.php -->
-      <form method="post" action="/WheelBase/register.php" id="registerForm">
+      <form method="post" action="/WheelBase/register.php" id="registerForm" onsubmit="return validateRegisterForm();">
         <div class="form-group">
           <label for="userType">Register as</label>
           <select id="userType" name="user_type" required>
@@ -40,7 +56,7 @@
 
         <div class="form-group">
           <label for="aadhaar">Aadhaar Number</label>
-          <input id="aadhaar" name="aadhaar" type="text" maxlength="12" minlength="12" required />
+          <input id="aadhaar" name="aadhaar" type="text" maxlength="12" required />
           <p class="small-text">Must be 12 digits.</p>
         </div>
 
@@ -57,11 +73,14 @@
         <div class="form-group">
           <label for="password">Password</label>
           <input id="password" name="password" type="password" required />
+          <p class="small-text">
+            At least 8 characters, 1 uppercase, 1 number, 1 special character.
+          </p>
         </div>
 
         <div class="form-group">
           <label for="phone">Phone Number</label>
-          <input id="phone" name="phone" type="text" required />
+          <input id="phone" name="phone" type="text" maxlength="10" required />
         </div>
 
         <button class="btn btn-primary" type="submit">Register</button>
@@ -74,7 +93,7 @@
   </main>
 
   <script>
-    // Preselect role if URL contains role param, e.g. register.html?role=retailer
+    // Preselect role if URL contains role param
     (function () {
       const params = new URLSearchParams(location.search);
       const role = params.get('role');
@@ -83,6 +102,42 @@
         if (sel) sel.value = role;
       }
     })();
+
+    // Client-side validation (simple & readable)
+    function validateRegisterForm() {
+      const name = document.getElementById('name').value.trim();
+      const aadhaar = document.getElementById('aadhaar').value.trim();
+      const email = document.getElementById('email').value.trim();
+      const phone = document.getElementById('phone').value.trim();
+      const password = document.getElementById('password').value;
+
+      if (!/^[A-Za-z ]+$/.test(name)) {
+        alert('Full Name must contain only letters and spaces.');
+        return false;
+      }
+
+      if (!/^\d{12}$/.test(aadhaar)) {
+        alert('Aadhaar number must be exactly 12 digits.');
+        return false;
+      }
+
+      if (!/^\S+@\S+\.\S+$/.test(email)) {
+        alert('Please enter a valid email address.');
+        return false;
+      }
+
+      if (!/^\d{10}$/.test(phone)) {
+        alert('Phone number must be exactly 10 digits.');
+        return false;
+      }
+
+      if (!/(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*#?&]).{8,}/.test(password)) {
+        alert('Password must be strong (8 chars, uppercase, number, special char).');
+        return false;
+      }
+
+      return true;
+    }
   </script>
 
 </body>

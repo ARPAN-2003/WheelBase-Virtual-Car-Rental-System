@@ -1,162 +1,160 @@
 <?php
-    // customer/book.php
-    session_start();
-    // expose role to JS, and if logged-in but not customer, we'll still show modal that suggests login-as-customer
+// customer/book.php
+session_start();
+
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../db.php';
+
+/* ---------- ROLE CHECK ---------- */
+if (!isset($_SESSION['role'])) {
+    $next = '/WheelBase/customer/book.php' . ($_SERVER['QUERY_STRING'] ? '?' . $_SERVER['QUERY_STRING'] : '');
+    header("Location: /WheelBase/auth/login.html?role=customer&next=" . urlencode($next));
+    exit;
+}
+
+$blocked = ($_SESSION['role'] !== 'customer');
+
+/* ---------- READ PARAMS ---------- */
+$regNo  = $_GET['reg_no'] ?? '';
+
+/* ---------- FETCH CAR ---------- */
+$db = get_db();
+$stmt = $db->prepare("SELECT * FROM cars WHERE reg_no = ?");
+$stmt->bind_param("s", $regNo);
+$stmt->execute();
+$res = $stmt->get_result();
+$car = $res->fetch_assoc();
+$stmt->close();
+
+if (!$car) {
+    die("<h2 style='padding:20px'>Invalid car selected.</h2>");
+}
 ?>
-
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8"/>
-  <title>Book Car — WheelBase</title>
-  <link rel="stylesheet" href="/WheelBase/assets/css/style.css" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <script>
-    window.USER_ROLE = <?php echo isset($_SESSION['role']) ? json_encode($_SESSION['role']) : 'null'; ?>;
-    window.USERNAME = <?php echo isset($_SESSION['username']) ? json_encode($_SESSION['username']) : 'null'; ?>;
-  </script>
+<meta charset="UTF-8">
+<title>Book Car – WheelBase</title>
+<link rel="stylesheet" href="/WheelBase/assets/css/style.css">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<script>
+/* SAME CITY–LOCATION MAP AS index.php */
+const cityLocations = {
+  "Kolkata": ["Salt Lake", "Garia", "Howrah", "Ballygunge", "Dumdum"],
+  "New Delhi": ["Connaught Place", "Karol Bagh", "Chanakyapuri", "Saket", "Dwarka"],
+  "Bengaluru": ["MG Road", "Koramangala", "Whitefield", "Indiranagar", "BTM Layout"],
+  "Mumbai": ["Andheri", "Bandra", "Colaba", "Juhu", "BKC"],
+  "Chennai": ["T Nagar", "Adyar", "Velachery", "Anna Nagar", "Chromepet"]
+};
+</script>
 </head>
+
 <body>
-  <header>
-    <div class="container navbar">
-      <div class="logo"><a href="/WheelBase/index.html">Wheel<span>Base</span></a></div>
-      <nav class="nav-links">
-        <a href="/WheelBase/customer/dashboard.php">Dashboard</a>
-        <a href="/WheelBase/customer/browse-cars.php">Browse Cars</a>
-        <a href="/WheelBase/customer/my-bookings.php">My Bookings</a>
-        <a href="/WheelBase/logout.php">Logout</a>
-      </nav>
-    </div>
-  </header>
 
-  <main class="container dashboard-main">
-    <div class="dashboard-header">
-      <h1>Book Car</h1>
-      <p class="small-text">Fill pickup / drop-off details. Payment later.</p>
-    </div>
+<header>
+<div class="container navbar">
+  <div class="logo"><a href="/WheelBase/index.php">Wheel<span>Base</span></a></div>
+  <nav class="nav-links">
+    <a href="/WheelBase/customer/dashboard.php">Dashboard</a>
+    <a href="/WheelBase/browse-cars.php">Browse Cars</a>
+    <a href="/WheelBase/customer/my-bookings.php">My Bookings</a>
+    <a href="/WheelBase/logout.php">Logout</a>
+  </nav>
+</div>
+</header>
 
-    <div class="table-wrapper">
-      <!-- post to server endpoint book.php in project root -->
-      <form method="post" action="/WheelBase/book.php" id="bookingForm">
-        <div class="form-group">
-          <label>Selected car</label>
-          <input id="selected_car" type="text" readonly />
-        </div>
+<main class="container dashboard-main">
 
-        <div class="form-group">
-          <label>City</label>
-          <input id="selected_city" type="text" readonly />
-        </div>
+<div class="dashboard-header">
+  <h1>Book Car</h1>
+  <p class="small-text">Confirm trip details. Booking status will be <b>Pending</b>.</p>
+</div>
 
-        <div class="form-group">
-          <label>Location / Area</label>
-          <input id="selected_location" type="text" readonly />
-        </div>
+<div class="table-wrapper">
 
-        <div class="form-group">
-          <label for="pickupDateTime">Pickup Date &amp; Time</label>
-          <input id="pickupDateTime" name="pickup_datetime" type="datetime-local" required />
-        </div>
+<form method="post" action="/WheelBase/customer/invoice.php">
 
-        <div class="form-group">
-          <label for="dropDateTime">Drop-off Date &amp; Time</label>
-          <input id="dropDateTime" name="drop_datetime" type="datetime-local" required />
-        </div>
+  <div class="form-group">
+    <label>Car</label>
+    <input type="text" value="<?= htmlspecialchars($car['car_name']) ?> (<?= htmlspecialchars($car['reg_no']) ?>)" readonly>
+  </div>
 
-        <!-- hidden inputs submitted to server -->
-        <input id="car_reg_input" type="hidden" name="car_reg_no" />
-        <input id="city_input" type="hidden" name="city" />
-        <input id="location_input" type="hidden" name="location" />
+  <div class="form-group">
+    <label>Brand</label>
+    <input type="text" value="<?= htmlspecialchars($car['brand_name']) ?>" readonly>
+  </div>
 
-        <div class="small-text" style="margin-top:8px;">
-          Pickup &amp; drop details will be confirmed by phone on your registered number after booking.
-        </div>
+  <div class="form-group">
+    <label>Rate / hour</label>
+    <input type="text" value="₹<?= number_format($car['price_per_hour'],2) ?>" readonly>
+  </div>
 
-        <button class="btn btn-primary" type="submit" style="margin-top:12px;">Confirm Booking (Pending)</button>
-      </form>
-    </div>
+  <!-- CITY -->
+  <div class="form-group">
+    <label>City</label>
+    <select name="city" id="citySelect" required>
+      <option value="">Select City</option>
+    </select>
+  </div>
 
-    <!-- modal if logged-in role is not customer -->
-    <div id="roleModal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.45); align-items:center; justify-content:center; z-index:9999;">
-      <div style="background:#fff; padding:22px; border-radius:8px; max-width:420px; width:90%; text-align:center;">
-        <h3 style="margin-top:0;">Cannot Book</h3>
-        <p id="roleModalMsg">You must login as a customer to book a car.</p>
-        <div style="margin-top:18px; display:flex; gap:8px; justify-content:center;">
-          <button id="roleModalClose" class="btn btn-outline">Close</button>
-          <a id="roleModalLogin" class="btn btn-primary" href="/WheelBase/auth/login.html?role=customer">Login as Customer</a>
-        </div>
-      </div>
-    </div>
+  <!-- LOCATION -->
+  <div class="form-group">
+    <label>Location</label>
+    <select name="location" id="locationSelect" required>
+      <option value="">Select Location</option>
+    </select>
+  </div>
 
-  </main>
+  <div class="form-group">
+    <label>Pickup Date & Time</label>
+    <input type="datetime-local" name="pickup_datetime" required>
+  </div>
 
-  <script>
-  (function () {
-    // read URL params and prefill fields
-    const params = new URLSearchParams(location.search);
-    const car = params.get('car') || '';
-    const city = params.get('city') || '';
-    const loc = params.get('location') || '';
-    const pickup = params.get('pickup') || '';
-    const drop = params.get('drop') || '';
+  <div class="form-group">
+    <label>Drop-off Date & Time</label>
+    <input type="datetime-local" name="drop_datetime" required>
+  </div>
 
-    // visible
-    if (document.getElementById('selected_car')) {
-      document.getElementById('selected_car').value = car ? car + ' (selected)' : 'No car selected';
-    }
-    if (document.getElementById('selected_city')) {
-      document.getElementById('selected_city').value = city;
-    }
-    if (document.getElementById('selected_location')) {
-      document.getElementById('selected_location').value = loc;
-    }
+  <input type="hidden" name="car_reg_no" value="<?= htmlspecialchars($car['reg_no']) ?>">
 
-    // hidden
-    if (document.getElementById('car_reg_input')) document.getElementById('car_reg_input').value = car || '';
-    if (document.getElementById('city_input')) document.getElementById('city_input').value = city || '';
-    if (document.getElementById('location_input')) document.getElementById('location_input').value = loc || '';
+  <button class="btn btn-primary" type="submit" <?= $blocked ? 'disabled' : '' ?>>
+    Confirm Booking
+  </button>
 
-    if (pickup && document.getElementById('pickupDateTime')) {
-      document.getElementById('pickupDateTime').value = pickup;
-    }
-    if (drop && document.getElementById('dropDateTime')) {
-      document.getElementById('dropDateTime').value = drop;
-    }
+</form>
+</div>
 
-    // role handling: if not customer, show modal and prevent form submit
-    const role = window.USER_ROLE || null;
-    const bookingForm = document.getElementById('bookingForm');
+<?php if ($blocked): ?>
+<div style="position:fixed; inset:0; background:rgba(0,0,0,.5); display:flex; align-items:center; justify-content:center;">
+  <div style="background:#fff; padding:22px; border-radius:8px; text-align:center;">
+    <h3>Cannot Book</h3>
+    <p>You are logged in as <b><?= htmlspecialchars($_SESSION['role']) ?></b>.<br>Login as customer to book.</p>
+    <a class="btn btn-primary" href="/WheelBase/auth/login.html?role=customer">Login as Customer</a>
+  </div>
+</div>
+<?php endif; ?>
 
-    function showModal(msg, nextUrl) {
-      const modal = document.getElementById('roleModal');
-      document.getElementById('roleModalMsg').textContent = msg;
-      const loginLink = document.getElementById('roleModalLogin');
-      if (nextUrl) {
-        loginLink.href = '/WheelBase/auth/login.html?role=customer&next=' + encodeURIComponent(nextUrl);
-      } else {
-        loginLink.href = '/WheelBase/auth/login.html?role=customer';
-      }
-      modal.style.display = 'flex';
-    }
+</main>
 
-    document.getElementById('roleModalClose').addEventListener('click', function(){ document.getElementById('roleModal').style.display='none'; });
+<script>
+/* Populate city dropdown */
+const citySelect = document.getElementById('citySelect');
+const locationSelect = document.getElementById('locationSelect');
 
-    // check role at load; if not customer and logged-in (retailer/admin) -> suggest login-as-customer
-    // if not logged in at all -> redirect to login with next param
-    const bookingNext = '/WheelBase/customer/book.php' + location.search;
-    if (!role) {
-      // not logged in: redirect to login (preserve next so after login user returns here)
-      window.location.href = '/WheelBase/auth/login.html?role=customer&next=' + encodeURIComponent(bookingNext);
-    } else if (role !== 'customer') {
-      // logged-in but not customer -> show modal and block form submit
-      showModal('You are logged in as ' + role + '. You must login as a customer to book a car.', bookingNext);
-      bookingForm.addEventListener('submit', function(e){ e.preventDefault(); showModal('You must login as a customer to book a car.', bookingNext); });
-    }
-    // else role === 'customer' -> do nothing, allow submit
+Object.keys(cityLocations).forEach(city => {
+  citySelect.add(new Option(city, city));
+});
 
-  })();
-  </script>
+/* Populate locations */
+citySelect.addEventListener('change', function () {
+  locationSelect.innerHTML = '<option value="">Select Location</option>';
+  (cityLocations[this.value] || []).forEach(loc => {
+    locationSelect.add(new Option(loc, loc));
+  });
+});
+</script>
 
-  <script src="/WheelBase/assets/js/main.js"></script>
+<script src="/WheelBase/assets/js/main.js"></script>
 </body>
 </html>

@@ -1,3 +1,8 @@
+<?php
+// auth/login.html
+  session_start();
+?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -7,6 +12,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
 </head>
 <body class="auth-wrapper">
+
   <header>
     <div class="container navbar">
       <div class="logo">Wheel<span>Base</span></div>
@@ -22,7 +28,17 @@
       <h2>Login</h2>
       <p>Choose your role and enter your username &amp; password.</p>
 
-      <!-- action posts to login.php (server-side) -->
+      <!-- 🔴 ERROR POPUP (SESSION BASED) -->
+      <?php if (!empty($_SESSION['login_error'])): ?>
+        <div class="alert error">
+          <?php
+            echo htmlspecialchars($_SESSION['login_error']);
+            unset($_SESSION['login_error']);
+          ?>
+        </div>
+      <?php endif; ?>
+
+      <!-- action posts to login.php -->
       <form method="post" action="/WheelBase/login.php" id="loginForm">
         <div class="form-group">
           <label for="userType">Login as</label>
@@ -44,7 +60,7 @@
           <input id="password" name="password" type="password" required />
         </div>
 
-        <!-- hidden next param: login.php will use this to redirect after success -->
+        <!-- hidden next param -->
         <input type="hidden" name="next" id="loginNext" value="">
 
         <button class="btn btn-primary" type="submit">Login</button>
@@ -57,9 +73,9 @@
   </main>
 
   <script>
-    // Read role & next from URL query (e.g. ?role=customer&next=/WheelBase/customer/browse-cars.php?...)
+    // Auto-select role & preserve "next" URL
     (function () {
-      const params = new URLSearchParams(location.search);
+      const params = new URLSearchParams(window.location.search);
       const role = params.get('role');
       const next = params.get('next');
 

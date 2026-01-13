@@ -1,6 +1,26 @@
 <?php
     // index.php
     session_start();
+
+    require_once __DIR__ . '/config.php';
+    require_once __DIR__ . '/db.php';
+
+    $db = get_db();
+
+    /* Fetch 6 available cars */
+    $cars = [];
+    $res = $db->query("
+      SELECT car_name, brand_name, capacity, price_per_hour, image_path
+      FROM cars
+      WHERE status = 'available'
+      ORDER BY created_at DESC
+      LIMIT 6
+    ");
+    if ($res) {
+      while ($row = $res->fetch_assoc()) {
+        $cars[] = $row;
+      }
+    }
 ?>
 
 <!DOCTYPE html>
@@ -43,7 +63,7 @@
 
       <!-- QUICK TRIP SEARCH CARD -->
       <div class="hero-card" style="padding:22px 22px;">
-        <h3>Quick trip search (demo only)</h3>
+        <h3>Quick trip search</h3>
         <p class="small-text">This is UI-first. After you test the backend, search will use real data.</p>
 
         <div class="form-group">
@@ -87,44 +107,24 @@
 
     <section>
       <h2>Popular rentals</h2>
-      <div class="card-grid">
-        <div class="card">
-          <img src="/WheelBase/img/sedan.jpeg" alt="Sedan" />
-          <div class="card-title">City Comfort</div>
-          <div class="card-text">Sedan • 5 seats • From ₹250 / hour</div>
-        </div>
-        <div class="card">
-          <img src="/WheelBase/img/suv.jpeg" alt="SUV" />
-          <div class="card-title">Family SUV</div>
-          <div class="card-text">SUV • 7 seats • From ₹350 / hour</div>
-        </div>
-        <div class="card">
-          <img src="/WheelBase/img/hatchback.avif" alt="Hatchback" />
-          <div class="card-title">Budget Ride</div>
-          <div class="card-text">Hatchback • 4 seats • From ₹180 / hour</div>
-        </div>
-      </div>
 
+      <!-- FIRST ROW -->
       <div class="card-grid">
+      <?php for ($i = 0; $i < 3; $i++): if (!isset($cars[$i])) break; ?>
         <div class="card">
-          <img src="/WheelBase/img/honda.jpg" alt="Honda" />
-          <div class="card-title">Honda</div>
-          <div class="card-text">Honda • 5 seats • From ₹250 / hour</div>
+          <img src="/WheelBase/<?= htmlspecialchars($cars[$i]['image_path'] ?: 'img/default-car.png') ?>">
+          <div class="card-title"><?= htmlspecialchars($cars[$i]['car_name']) ?></div>
+          <div class="card-text">
+            <?= htmlspecialchars($cars[$i]['brand_name']) ?> •
+            <?= (int)$cars[$i]['capacity'] ?> seats •
+            From ₹<?= number_format($cars[$i]['price_per_hour'],2) ?> / hour
+          </div>
         </div>
-        <div class="card">
-          <img src="/WheelBase/img/hyundai.avif" alt="Hyundai" />
-          <div class="card-title">Hyundai</div>
-          <div class="card-text">Hyundai • 7 seats • From ₹350 / hour</div>
-        </div>
-        <div class="card">
-          <img src="/WheelBase/img/skoda.jpeg" alt="Skoda" />
-          <div class="card-title">Skoda</div>
-          <div class="card-text">Skoda • 4 seats • From ₹180 / hour</div>
-        </div>
+      <?php endfor; ?>
       </div>
 
       <div style="text-align:center; margin: 10px 0 40px;">
-        <a href="/WheelBase/customer/browse-cars.php" class="btn btn-primary">Browse all cars</a>
+        <a href="/WheelBase/login.php" class="btn btn-primary">Browse all cars</a>
       </div>
     </section>
 
@@ -275,7 +275,7 @@
             pickup: pickup,
             drop: drop
           });
-          const browseUrl = '/WheelBase/customer/browse-cars.php?' + params.toString();
+          const browseUrl = '/WheelBase/browse-cars.php?' + params.toString();
 
           // if not logged in, send to login with role=customer and next param
           if (!window.USER_ROLE) {
